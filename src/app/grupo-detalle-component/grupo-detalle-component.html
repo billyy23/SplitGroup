@@ -1,0 +1,98 @@
+<div class="detalle-page">
+
+  <!-- Cabecera -->
+  <div class="detalle-header">
+    <button class="btn-volver" (click)="volver()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Grupos
+    </button>
+    <h2 class="detalle-titulo">{{ nombreGrupo() }}</h2>
+  </div>
+
+  <!-- Pestañas -->
+  <div class="tabs">
+    <button class="tab" [class.active]="pestanaActiva() === 'gastos'"
+            (click)="cambiarPestana('gastos')">
+      Gastos
+    </button>
+    <button class="tab" [class.active]="pestanaActiva() === 'participantes'"
+            (click)="cambiarPestana('participantes')">
+      Participantes
+    </button>
+    <button class="tab" [class.active]="pestanaActiva() === 'saldos'"
+            (click)="cambiarPestana('saldos')">
+      Saldos
+    </button>
+  </div>
+
+  <!-- Contenido pestanas -->
+  <div class="tab-content">
+
+    @if (pestanaActiva() === 'gastos') {
+      <div class="tab-header">
+        <span class="tab-info">{{ gastos().length }} gastos · {{ totalGastos() | number:'1.2-2' }} €</span>
+        <button class="btn-crear">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Anadir gasto
+        </button>
+      </div>
+
+      @if (gastos().length > 0) {
+        <ul class="lista">
+          @for (gasto of gastos(); track gasto.id) {
+            <li class="lista-item">
+              <div class="item-avatar gasto-avatar">
+                {{ gasto.concepto.charAt(0).toUpperCase() }}
+              </div>
+              <div class="item-info">
+                <span class="item-titulo">{{ gasto.concepto }}</span>
+                <span class="item-sub">Pagado por {{ nombreParticipante(gasto.pagadoPor) }}</span>
+              </div>
+              <span class="item-importe">{{ gasto.importe | number:'1.2-2' }} €</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="empty-state">
+          <p>Todavía no hay gastos</p>
+          <span>Pulsa "Anadir gasto" para registrar el primero</span>
+        </div>
+      }
+    }
+
+    @if (pestanaActiva() === 'participantes') {
+      <div class="tab-header">
+        <span class="tab-info">{{ participantes().length }} participantes</span>
+      </div>
+      <ul class="lista">
+        @for (p of participantes(); track p.id) {
+          <li class="lista-item">
+            <div class="item-avatar">
+              {{ p.nombre.charAt(0).toUpperCase() }}
+            </div>
+            <span class="item-titulo">{{ p.nombre }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (pestanaActiva() === 'saldos') {
+      <div class="empty-state">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        <p>Los saldos se calcularán aquí</p>
+        <span>Disponible cuando haya gastos registrados</span>
+      </div>
+    }
+
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <div class="login-brand">
+      <div class="brand-icon-lg">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M3 21v-2a4 4 0 0 1 4-4h4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/>
+          <line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+      </div>
+      <h1 class="login-title">SplitGroup</h1>
+      <p class="login-subtitle">
+        {{ modoRegistro() ? 'Crea tu cuenta para empezar' : 'Gestiona gastos con tu grupo fácilmente' }}
+      </p>
+    </div>
+
+    <div class="login-form">
+
+      <!-- Error -->
+      @if (errorMsg()) {
+        <div class="error-msg">{{ errorMsg() }}</div>
+      }
+
+      <div class="form-group mb-3">
+        <label class="form-label-custom">Correo electrónico</label>
+        <input type="email" class="input-custom"
+               placeholder="tu@email.com"
+               [ngModel]="email()"
+               (ngModelChange)="email.set($event)" />
+      </div>
+
+      <div class="form-group mb-4">
+        <label class="form-label-custom">Contraseña</label>
+        <input type="password" class="input-custom"
+               placeholder="••••••••"
+               [ngModel]="password()"
+               (ngModelChange)="password.set($event)" />
+      </div>
+
+      <button class="btn-primary-custom w-100"
+              [disabled]="loading()"
+              (click)="submit()">
+        @if (loading()) { Cargando... }
+        @else { {{ modoRegistro() ? 'Crear cuenta' : 'Iniciar sesión' }} }
+      </button>
+
+      <div class="login-divider">
+        <span>{{ modoRegistro() ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?' }}</span>
+      </div>
+
+      <button class="btn-secondary-custom w-100" (click)="toggleModo()">
+        {{ modoRegistro() ? 'Iniciar sesión' : 'Crear cuenta' }}
+      </button>
+
+    </div>
+  </div>
+</div>

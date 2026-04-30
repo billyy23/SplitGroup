@@ -1,0 +1,131 @@
+<div class="grupos-page">
+
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Mis grupos</h2>
+      <p class="page-subtitle">Selecciona un grupo para ver sus gastos</p>
+    </div>
+    <button class="btn-crear" (click)="abrirFormulario()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuevo grupo
+    </button>
+  </div>
+
+  <!-- Formulario crear grupo -->
+@if (mostrarFormulario()) {
+  <div class="form-card">
+
+    <!-- Nombre -->
+    <div class="form-section">
+      <label class="form-label">Nombre del grupo</label>
+      <input class="input-custom" type="text" placeholder="Ej: Piso compartido"
+             [ngModel]="nuevoGrupo().nombre"
+             (ngModelChange)="actualizarNombre($event)" />
+    </div>
+
+    <!-- Moneda -->
+    <div class="form-section">
+      <label class="form-label">Moneda</label>
+      <select class="input-custom select-custom"
+              [ngModel]="nuevoGrupo().moneda"
+              (ngModelChange)="actualizarMoneda($event)">
+        @for (moneda of monedas; track moneda.codigo) {
+          <option [value]="moneda.codigo">
+            {{ moneda.simbolo }} {{ moneda.nombre }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <!-- Participantes -->
+    <div class="form-section">
+      <label class="form-label">Participantes</label>
+
+      @for (p of nuevoGrupo().participantes; track p.id; let i = $index) {
+        <div class="participant-row">
+          <input class="input-custom" type="text"
+                 placeholder="Nombre del participante"
+                 [ngModel]="p.nombre"
+                 (ngModelChange)="actualizarParticipante(p.id, $event)" />
+          @if (i > 0) {
+            <button class="btn-remove" (click)="pedirConfirmacionEliminar(p)" title="Eliminar">✕</button>
+          }
+        </div>
+      }
+
+      <button class="btn-add-participant" (click)="anadirParticipante()">
+        + Añadir participante
+      </button>
+    </div>
+
+    <!-- Acciones -->
+    <div class="form-actions">
+      <button class="btn-cancelar" (click)="cancelar()">Cancelar</button>
+      <button class="btn-confirmar" (click)="crearGrupo()">Crear grupo</button>
+    </div>
+  </div>
+
+  <!-- Modal confirmación eliminar -->
+  @if (modalVisible()) {
+    <div class="modal-backdrop" (click)="cerrarModal()">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <p class="modal-titulo">
+          ¿Eliminar a <strong>{{ participanteAEliminar()?.nombre || 'este participante' }}</strong>?
+        </p>
+        <p class="modal-subtitulo">Esta acción no se puede deshacer.</p>
+        <div class="modal-acciones">
+          <button class="btn-cancelar" (click)="cerrarModal()">Cancelar</button>
+          <button class="btn-eliminar" (click)="confirmarEliminar()">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  }
+}
+
+  <!-- Lista de grupos -->
+  @if (grupos().length > 0) {
+    <ul class="grupos-lista">
+      @for (grupo of grupos(); track grupo.id) {
+        <li class="grupo-item" (click)="abrirGrupo(grupo.id)">
+          <div class="grupo-avatar">
+            {{ grupo.nombre.charAt(0).toUpperCase() }}
+          </div>
+          <span class="grupo-nombre">{{ grupo.nombre }}</span>
+          <div class="grupo-actions">
+            <button class="btn-icon" title="Eliminar" (click)="$event.stopPropagation(); eliminarGrupo(grupo.id)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <!-- Estado vacío -->
+    <div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <p>Todavía no tienes ningún grupo</p>
+      <span>Pulsa "Nuevo grupo" para crear el primero</span>
+    </div>
+  }
+
+</div>

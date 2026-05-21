@@ -1,4 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { DestroyRef, EnvironmentInjector, inject, Injectable, runInInjectionContext, signal } from '@angular/core';
+import { GrupoService } from './grupo-service';
+import { catchError, EMPTY } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface Participante {
   id: number;
@@ -13,7 +16,7 @@ export interface Gasto {
 }
 
 export interface Grupo {
-  id: number;
+  id: string;      
   nombre: string;
   moneda: string;
   participantes: Participante[];
@@ -28,42 +31,44 @@ interface NuevoGrupoInput {
 
 @Injectable({ providedIn: 'root' })
 export class GruposStoreService {
-  private readonly gruposState = signal<Grupo[]>([
-    { id: 1, nombre: 'Piso compartido', moneda: 'EUR', participantes: [], gastos: [] },
-    { id: 2, nombre: 'Viaje a Roma', moneda: 'EUR', participantes: [], gastos: [] }
-  ]);
-
+  private grupoService = inject(GrupoService);
+  private readonly injector = inject(EnvironmentInjector);
+  private readonly gruposState = signal<Grupo[]>([]);
   readonly grupos = this.gruposState.asReadonly();
+  private destroyRef = inject(DestroyRef);
 
-  crearGrupo(input: NuevoGrupoInput): void {
-    const nombre = input.nombre.trim();
-    if (!nombre) return;
-
-    const idBase = Date.now();
-    const participantes = input.participantes
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-      .map((nombreParticipante, index) => ({
-        id: idBase + index + 1,
-        nombre: nombreParticipante
-      }));
-
-    const nuevoGrupo: Grupo = {
-      id: idBase,
-      nombre,
-      moneda: input.moneda,
-      participantes,
-      gastos: []
-    };
-
-    this.gruposState.update((actual) => [...actual, nuevoGrupo]);
+  constructor() {
+    runInInjectionContext(this.injector, () => {
+      this.grupoService.getGrupos().pipe(
+        catchError(err => {
+          console.error('[GruposStore] Error:', err);
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(grupos => {
+        this.gruposState.set(grupos);
+        console.log('[GruposStore] grupos:', grupos.length);
+      });
+    });
   }
 
-  eliminarGrupo(id: number): void {
-    this.gruposState.update((actual) => actual.filter((g) => g.id !== id));
+
+  async crearGrupo(input: NuevoGrupoInput): Promise<void> {
+    if (!input.nombre.trim()) return;
+    await this.grupoService.crearGrupo(
+      input.nombre,
+      input.moneda,
+      input.participantes
+    );
+    // No hace falta actualizar el signal manualmente,
+    // el observable de Firestore lo actualiza solo
   }
 
-  obtenerGrupoPorId(id: number): Grupo | undefined {
-    return this.gruposState().find((g) => g.id === id);
+  async eliminarGrupo(id: string): Promise<void> {
+    await this.grupoService.eliminarGrupo(id);
+  }
+
+  obtenerGrupoPorId(id: string): Grupo | undefined {
+    return this.gruposState().find(g => g.id === id);
   }
 }

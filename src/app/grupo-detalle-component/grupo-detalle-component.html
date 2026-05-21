@@ -26,6 +26,10 @@
             (click)="cambiarPestana('saldos')">
       Saldos
     </button>
+    <button class="tab" [class.active]="pestanaActiva() === 'historial'"
+        (click)="cambiarPestana('historial')">
+      Historial
+    </button>
   </div>
 
   <!-- Contenido pestanas -->
@@ -93,6 +97,33 @@
         <span>Disponible cuando haya gastos registrados</span>
       </div>
     }
+
+    @if (pestanaActiva() === 'historial') {
+  <div class="tab-header">
+    <span class="tab-info">{{ historial().length }} entradas</span>
+  </div>
+
+  @if (historial().length > 0) {
+    <ul class="historial-lista">
+      @for (entrada of historial(); track entrada.id) {
+        <li class="historial-item">
+          <div class="historial-icono" [class]="colorHistorial(entrada.tipo)">
+            {{ iconoHistorial(entrada.tipo) }}
+          </div>
+          <div class="historial-info">
+            <span class="historial-desc">{{ entrada.descripcion }}</span>
+            <span class="historial-meta">{{ entrada.autor }} · {{ entrada.fecha | date:'d MMM y, HH:mm' }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  } @else {
+    <div class="empty-state">
+      <p>Sin actividad todavía</p>
+      <span>Aquí aparecerán los cambios del grupo</span>
+    </div>
+  }
+}
 
   </div>
 </div>

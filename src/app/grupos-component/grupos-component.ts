@@ -72,8 +72,12 @@ export class GruposComponent {
     this.cancelar();
   }
 
-  eliminarGrupo(id: number) {
+  eliminarGrupo(id: string) {
     this.gruposStore.eliminarGrupo(id);
+  }
+
+  abrirGrupo(id: string) {
+    this.router.navigate(['/grupos', id]);
   }
 
   // ── Participantes ──
@@ -128,8 +132,6 @@ export class GruposComponent {
     });
   }
 
-  abrirGrupo(id: number) {
-    this.router.navigate(['/grupos', id]);
-  }
+
 
 }

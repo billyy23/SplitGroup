@@ -1,54 +1,76 @@
-import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import {
-  Firestore, collection, addDoc, doc,
-  deleteDoc, query, where, collectionData, serverTimestamp
+  Firestore,
+  collection,
+  query,
+  where,
+  collectionData,
+  addDoc,
+  serverTimestamp,
 } from '@angular/fire/firestore';
-import { Auth, authState } from '@angular/fire/auth';
-import { Observable, of, switchMap, tap } from 'rxjs';
+// ↓ SDK directo para operaciones one-shot: sin interceptación de AngularFire RC
+import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { Auth } from '@angular/fire/auth';
+import { Observable, of } from 'rxjs';
 import { Grupo } from './grupos-store.service';
 
 @Injectable({ providedIn: 'root' })
 export class GrupoService {
-  private firestore = inject(Firestore);
-  private auth = inject(Auth);
-  private injector = inject(EnvironmentInjector); // ← añadir esto
+  firestore: Firestore = inject(Firestore);
+  auth: Auth           = inject(Auth);
 
   getGrupos(): Observable<Grupo[]> {
-    return authState(this.auth).pipe(
-      tap(user => console.log('[GrupoService] authState:', user?.uid ?? 'null')),
-      switchMap(user => {
-        if (!user) return of([]);
+    const user = this.auth.currentUser;
+    if (!user) return of([]);
 
-        // ↓ envolver aquí, donde se llama a collectionData
-        return runInInjectionContext(this.injector, () => {
-          const ref = collection(this.firestore, 'grupos');
-          const q = query(ref, where('miembros', 'array-contains', user.uid));
-          return collectionData(q, { idField: 'id' }) as Observable<Grupo[]>;
-        });
-      })
+    const q = query(
+      collection(this.firestore, 'grupos'),
+      where('miembros', 'array-contains', user.uid)
     );
+
+    return collectionData(q, { idField: 'id' }) as Observable<Grupo[]>;
   }
 
-  async crearGrupo(nombre: string, moneda: string, participantes: string[]): Promise<string> {
+  async crearGrupo(
+    nombre: string,
+    moneda: string,
+    participantes: { nombre: string; uid: string | null }[]
+  ): Promise<string> {
     const uid = this.auth.currentUser?.uid;
-    const ref = collection(this.firestore, 'grupos');
-
-    const grupoRef = await addDoc(ref, {
+    const grupoRef = await addDoc(collection(this.firestore, 'grupos'), {
       nombre,
       moneda,
-      creadoPor: uid,
-      creadoEn: serverTimestamp(),
-      miembros: [uid],
-      gastos: [],
+      creadoPor:     uid,
+      creadoEn:      serverTimestamp(),
+      miembros:      [uid],
+      gastos:        [],
       participantes: participantes
-        .filter(n => n.trim())
-        .map((nombre, i) => ({ id: i + 1, nombre: nombre.trim() }))
+        .filter(p => p.nombre.trim())
+        .map((p, i) => ({ id: i + 1, nombre: p.nombre.trim(), uid: p.uid })),
     });
-
     return grupoRef.id;
   }
 
   eliminarGrupo(grupoId: string): Promise<void> {
     return deleteDoc(doc(this.firestore, 'grupos', grupoId));
   }
-}
+
+  async eliminarParticipante(grupoId: string, participanteId: number | string): Promise<void> {
+    const grupoRef = doc(this.firestore, 'grupos', grupoId);
+    const snap     = await getDoc(grupoRef);
+
+    if (!snap.exists()) return;
+
+    const array = snap.data()?.['participantes'] as any[] | undefined;
+
+    if (array && array.length > 0) {
+      await updateDoc(grupoRef, {
+        participantes: array.filter(p => String(p.id) !== String(participanteId)),
+      });
+    } else {
+      await deleteDoc(
+        doc(this.firestore, `grupos/${grupoId}/participantes/${String(participanteId)}`)
+      );
+    }
+  }
+} 

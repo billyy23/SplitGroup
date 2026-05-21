@@ -38,7 +38,7 @@
     @if (pestanaActiva() === 'gastos') {
       <div class="tab-header">
         <span class="tab-info">{{ gastos().length }} gastos · {{ totalGastos() | number:'1.2-2' }} €</span>
-        <button class="btn-crear">
+        <button class="btn-crear" (click)="mostrarFormGasto.set(true)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -74,16 +74,45 @@
       <div class="tab-header">
         <span class="tab-info">{{ participantes().length }} participantes</span>
       </div>
+
       <ul class="lista">
         @for (p of participantes(); track p.id) {
           <li class="lista-item">
-            <div class="item-avatar">
-              {{ p.nombre.charAt(0).toUpperCase() }}
+            <div class="item-avatar">{{ p.nombre.charAt(0).toUpperCase() }}</div>
+            <div class="item-info">
+              <span class="item-titulo">{{ p.nombre }}</span>
+              @if (esYo(p)) {
+                <span class="item-sub">Yo</span>
+              }
             </div>
-            <span class="item-titulo">{{ p.nombre }}</span>
+            @if (!esYo(p)) {
+              <button class="btn-icon" title="Eliminar participante"
+                      (click)="pedirConfirmacionEliminar(p)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            }
           </li>
         }
       </ul>
+
+      @if (modalEliminarVisible()) {
+        <div class="modal-backdrop" (click)="cerrarModal()">
+          <div class="modal-box" (click)="$event.stopPropagation()">
+            <p class="modal-titulo">
+              ¿Eliminar a <strong>{{ participanteAEliminar()?.nombre }}</strong>?
+            </p>
+            <p class="modal-subtitulo">No podrá añadir más gastos.</p>
+            <div class="modal-acciones">
+              <button class="btn-cancelar" (click)="cerrarModal()">Cancelar</button>
+              <button class="btn-eliminar" (click)="confirmarEliminar()">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      }
     }
 
     @if (pestanaActiva() === 'saldos') {
@@ -123,7 +152,15 @@
       <span>Aquí aparecerán los cambios del grupo</span>
     </div>
   }
-}
+  }
 
   </div>
+
+  @if (mostrarFormGasto()) {
+    <app-anadir-gasto
+      [participantes]="participantes()"
+      [monedaGrupo]="grupoActual()?.moneda ?? 'EUR'"
+      [miUid]="miUid"
+      (cerrar)="mostrarFormGasto.set(false)" />
+  }
 </div>

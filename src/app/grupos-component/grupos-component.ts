@@ -2,11 +2,14 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Auth } from '@angular/fire/auth';
 import { GruposStoreService } from '../services/grupos-store.service';
+import { UserService } from '../services/user-service';
 
 interface Participante {
   id: number;
   nombre: string;
+  uid: string | null;
 }
 
 interface NuevoGrupo {
@@ -16,13 +19,13 @@ interface NuevoGrupo {
 }
 
 const MONEDAS = [
-  { codigo: 'EUR', simbolo: '€', nombre: 'Euro' },
-  { codigo: 'USD', simbolo: '$', nombre: 'Dólar estadounidense' },
-  { codigo: 'GBP', simbolo: '£', nombre: 'Libra esterlina' },
-  { codigo: 'JPY', simbolo: '¥', nombre: 'Yen japonés' },
+  { codigo: 'EUR', simbolo: '€',   nombre: 'Euro' },
+  { codigo: 'USD', simbolo: '$',   nombre: 'Dólar estadounidense' },
+  { codigo: 'GBP', simbolo: '£',   nombre: 'Libra esterlina' },
+  { codigo: 'JPY', simbolo: '¥',   nombre: 'Yen japonés' },
   { codigo: 'CHF', simbolo: 'CHF', nombre: 'Franco suizo' },
-  { codigo: 'CAD', simbolo: '$', nombre: 'Dólar canadiense' },
-  { codigo: 'AUD', simbolo: '$', nombre: 'Dólar australiano' },
+  { codigo: 'CAD', simbolo: '$',   nombre: 'Dólar canadiense' },
+  { codigo: 'AUD', simbolo: '$',   nombre: 'Dólar australiano' },
 ];
 
 @Component({
@@ -32,26 +35,37 @@ const MONEDAS = [
   styleUrl: './grupos-component.css',
 })
 export class GruposComponent {
-
-  private router = inject(Router);
+  private router      = inject(Router);
   private gruposStore = inject(GruposStoreService);
-  grupos = this.gruposStore.grupos;
+  private userService = inject(UserService);
+  private auth        = inject(Auth);
 
+  grupos  = this.gruposStore.grupos;
   monedas = MONEDAS;
+
   mostrarFormulario = signal(false);
+  cargandoNombre    = signal(false);
 
   nuevoGrupo = signal<NuevoGrupo>({
     nombre: '',
     moneda: 'EUR',
-    participantes: [{ id: Date.now(), nombre: '' }]
+    participantes: [{ id: Date.now(), nombre: '', uid: null }]
   });
 
-  // Modal confirmar eliminación
-  modalVisible = signal(false);
+  modalVisible          = signal(false);
   participanteAEliminar = signal<Participante | null>(null);
 
-  abrirFormulario() {
+  async abrirFormulario() {
     this.mostrarFormulario.set(true);
+    this.cargandoNombre.set(true);
+    const nombreGuardado = await this.userService.getNombreGuardado();
+    const uid = this.auth.currentUser?.uid ?? null;
+    this.nuevoGrupo.set({
+      nombre: '',
+      moneda: 'EUR',
+      participantes: [{ id: Date.now(), nombre: nombreGuardado, uid }]
+    });
+    this.cargandoNombre.set(false);
   }
 
   cancelar() {
@@ -59,28 +73,26 @@ export class GruposComponent {
     this.resetForm();
   }
 
-  crearGrupo() {
+  async crearGrupo() {
     const data = this.nuevoGrupo();
     if (!data.nombre.trim()) return;
 
-    this.gruposStore.crearGrupo({
+    const yo = data.participantes[0];
+    if (yo.nombre.trim()) {
+      await this.userService.guardarNombre(yo.nombre.trim());
+    }
+
+    await this.gruposStore.crearGrupo({
       nombre: data.nombre,
       moneda: data.moneda,
-      participantes: data.participantes.map((p) => p.nombre)
+      participantes: data.participantes.map(p => ({ nombre: p.nombre, uid: p.uid }))
     });
 
     this.cancelar();
   }
 
-  eliminarGrupo(id: string) {
-    this.gruposStore.eliminarGrupo(id);
-  }
-
-  abrirGrupo(id: string) {
-    this.router.navigate(['/grupos', id]);
-  }
-
-  // ── Participantes ──
+  eliminarGrupo(id: string) { this.gruposStore.eliminarGrupo(id); }
+  abrirGrupo(id: string)    { this.router.navigate(['/grupos', id]); }
 
   actualizarNombre(valor: string) {
     this.nuevoGrupo.update(g => ({ ...g, nombre: valor }));
@@ -100,7 +112,7 @@ export class GruposComponent {
   anadirParticipante() {
     this.nuevoGrupo.update(g => ({
       ...g,
-      participantes: [...g.participantes, { id: Date.now(), nombre: '' }]
+      participantes: [...g.participantes, { id: Date.now(), nombre: '', uid: null }]
     }));
   }
 
@@ -128,10 +140,7 @@ export class GruposComponent {
     this.nuevoGrupo.set({
       nombre: '',
       moneda: 'EUR',
-      participantes: [{ id: Date.now(), nombre: '' }]
+      participantes: [{ id: Date.now(), nombre: '', uid: null }]
     });
   }
-
-
-
 }

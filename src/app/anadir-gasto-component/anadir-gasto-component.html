@@ -1,0 +1,147 @@
+<div class="gasto-overlay" (click)="onCerrar()">
+  <div class="gasto-panel" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="gasto-header">
+      <h3 class="gasto-title">Añadir gasto</h3>
+      <button class="btn-close-gasto" type="button" (click)="onCerrar()" aria-label="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="gasto-body">
+
+      <!-- Concepto -->
+      <div class="gasto-field">
+        <label class="gasto-label">Concepto</label>
+        <input class="gasto-input" type="text" placeholder="Ej: Cena en restaurante"
+               [ngModel]="titulo()" (ngModelChange)="titulo.set($event)" />
+      </div>
+
+      <!-- Importe + Moneda -->
+      <div class="gasto-field">
+        <label class="gasto-label">Importe</label>
+        <div class="importe-row">
+          <input class="gasto-input importe-num" type="number" min="0" step="0.01" placeholder="0,00"
+                 [ngModel]="importe()" (ngModelChange)="importe.set($event)" />
+          <select class="moneda-select"
+                  [ngModel]="monedaSeleccionada()" (ngModelChange)="monedaSeleccionada.set($event)">
+            @for (m of monedas; track m.codigo) {
+              <option [value]="m.codigo">{{ m.simbolo }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Pagado por + Cuándo -->
+      <div class="gasto-row-two">
+        <div class="gasto-field">
+          <label class="gasto-label">Pagado por</label>
+          <select class="gasto-input gasto-select"
+                  [ngModel]="pagadoPorId()" (ngModelChange)="pagadoPorId.set($event)">
+            @for (p of participantesUI(); track p.id) {
+              <option [value]="p.id">{{ displayNombre(p) }}</option>
+            }
+          </select>
+        </div>
+        <div class="gasto-field">
+          <label class="gasto-label">Cuándo</label>
+          <input class="gasto-input" type="datetime-local"
+                 [ngModel]="fechaStr()" (ngModelChange)="fechaStr.set($event)" />
+        </div>
+      </div>
+
+      <!-- Dividir -->
+      <div class="gasto-field">
+        <label class="gasto-label">Dividir entre</label>
+        <select class="gasto-input gasto-select"
+                [ngModel]="modoDivision()" (ngModelChange)="onModoChange($event)">
+          <option value="igual">Por igual</option>
+          <option value="fracciones">Por fracciones</option>
+          <option value="manual">Manual (por persona)</option>
+        </select>
+      </div>
+
+      <!-- Sección participantes -->
+      <div class="division-section">
+
+        <!-- Seleccionar todos -->
+        <label class="part-row part-todos">
+          <input type="checkbox" class="part-check"
+                 [checked]="todosSeleccionados()"
+                 [indeterminate]="algunoSeleccionado() && !todosSeleccionados()"
+                 (change)="onToggleTodos($event)" />
+          <span class="part-nombre part-todos-label">Seleccionar todos</span>
+        </label>
+
+        <div class="part-divider"></div>
+
+        @for (p of participantesUI(); track p.id) {
+          <div class="part-row" [class.part-dim]="!p.seleccionado">
+
+            <label class="check-nombre">
+              <input type="checkbox" class="part-check"
+                     [checked]="p.seleccionado"
+                     (change)="onToggleParticipante(p.id, $event)" />
+              <span class="part-nombre" [class.yo-label]="p.esYo">
+                {{ displayNombre(p) }}
+              </span>
+            </label>
+
+            <div class="part-derecha">
+
+              @if (modoDivision() === 'igual') {
+                <span class="part-importe" [class.importe-gris]="!p.seleccionado">
+                  0,00 {{ simboloMoneda() }}
+                </span>
+              }
+
+              @if (modoDivision() === 'fracciones') {
+                <div class="fraccion-ctrl">
+                  <button class="btn-frac" type="button"
+                          [disabled]="p.fraccion <= 0"
+                          (click)="cambiarFraccion(p.id, -1)">−</button>
+                  <span class="frac-val">{{ p.fraccion }}x</span>
+                  <button class="btn-frac" type="button"
+                          (click)="cambiarFraccion(p.id, 1)">+</button>
+                </div>
+                <span class="part-importe" [class.importe-gris]="p.fraccion === 0">
+                  0,00 {{ simboloMoneda() }}
+                </span>
+              }
+
+              @if (modoDivision() === 'manual') {
+                <div class="manual-row">
+                  <input class="manual-input" type="number" min="0" step="0.01"
+                         placeholder="0,00"
+                         [disabled]="!p.seleccionado"
+                         [value]="p.importeManual"
+                         (input)="onImporteManual(p.id, $event)" />
+                  <span class="manual-simbolo">{{ simboloMoneda() }}</span>
+                </div>
+              }
+
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="gasto-footer">
+      <button class="btn-cancel-gasto" type="button" (click)="onCerrar()">Cancelar</button>
+      <button class="btn-save-gasto" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Guardar gasto
+      </button>
+    </div>
+
+  </div>
+</div>

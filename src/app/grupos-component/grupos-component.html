@@ -48,10 +48,12 @@
       @for (p of nuevoGrupo().participantes; track p.id; let i = $index) {
         <div class="participant-row">
           <input class="input-custom" type="text"
-                 placeholder="Nombre del participante"
-                 [ngModel]="p.nombre"
-                 (ngModelChange)="actualizarParticipante(p.id, $event)" />
-          @if (i > 0) {
+                [placeholder]="i === 0 ? 'Tu nombre' : 'Nombre del participante'"
+                [ngModel]="p.nombre"
+                (ngModelChange)="actualizarParticipante(p.id, $event)" />
+          @if (i === 0) {
+            <span class="yo-tag">Yo</span>
+          } @else {
             <button class="btn-remove" (click)="pedirConfirmacionEliminar(p)" title="Eliminar">✕</button>
           }
         </div>

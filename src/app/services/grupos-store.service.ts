@@ -6,6 +6,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export interface Participante {
   id: number;
   nombre: string;
+  uid?: string | null;
+
 }
 
 export interface Gasto {
@@ -26,42 +28,35 @@ export interface Grupo {
 interface NuevoGrupoInput {
   nombre: string;
   moneda: string;
-  participantes: string[];
+  participantes: { nombre: string; uid: string | null }[];
 }
+
 
 @Injectable({ providedIn: 'root' })
 export class GruposStoreService {
   private grupoService = inject(GrupoService);
-  private readonly injector = inject(EnvironmentInjector);
+  private destroyRef = inject(DestroyRef);
   private readonly gruposState = signal<Grupo[]>([]);
   readonly grupos = this.gruposState.asReadonly();
-  private destroyRef = inject(DestroyRef);
 
   constructor() {
-    runInInjectionContext(this.injector, () => {
-      this.grupoService.getGrupos().pipe(
-        catchError(err => {
-          console.error('[GruposStore] Error:', err);
-          return EMPTY;
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      ).subscribe(grupos => {
-        this.gruposState.set(grupos);
-        console.log('[GruposStore] grupos:', grupos.length);
-      });
+    // El constructor SÍ es contexto de inyección.
+    // getGrupos() se ejecuta síncronamente aquí → collectionData en contexto correcto.
+    this.grupoService.getGrupos().pipe(
+      catchError(err => {
+        console.error('[GruposStore] Error:', err);
+        return EMPTY;
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(grupos => {
+      this.gruposState.set(grupos);
+      console.log('[GruposStore] grupos:', grupos.length);
     });
   }
 
-
   async crearGrupo(input: NuevoGrupoInput): Promise<void> {
     if (!input.nombre.trim()) return;
-    await this.grupoService.crearGrupo(
-      input.nombre,
-      input.moneda,
-      input.participantes
-    );
-    // No hace falta actualizar el signal manualmente,
-    // el observable de Firestore lo actualiza solo
+    await this.grupoService.crearGrupo(input.nombre, input.moneda, input.participantes);
   }
 
   async eliminarGrupo(id: string): Promise<void> {
